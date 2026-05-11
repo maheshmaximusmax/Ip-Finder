@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NetScan Pro — Industrial Network Scanner</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --card: #1a2235;
+    --border: #1e2d45;
+    --border2: #2a3d5a;
+    --accent: #00d4ff;
+    --accent2: #0099cc;
+    --accent3: #00ff9d;
+    --warn: #ffb300;
+    --danger: #ff4757;
+    --text: #e8f0fe;
+    --text2: #8fa3c0;
+    --text3: #4a6080;
+    --plc: #7c5cfc;
+    --camera: #00c896;
+    --router: #00aaff;
+    --iot: #ff9f43;
+    --workstation: #a8b2c8;
+    --unknown: #445566;
+    --font: 'Share Tech Mono', 'Courier New', monospace;
+    --font2: 'Rajdhani', 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font2);
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== LAYOUT ===== */
+  .container { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 20px; }
+
+  /* ===== HEADER ===== */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px; margin-bottom: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: relative; overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent3), transparent);
+    animation: scanline 3s linear infinite;
+  }
+  @keyframes scanline { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .logo-text h1 {
+    font-size: 22px; font-weight: 700; letter-spacing: 2px;
+    color: var(--accent); text-transform: uppercase;
+    font-family: var(--font);
+  }
+  .logo-text p { font-size: 11px; color: var(--text3); letter-spacing: 1px; }
+
+  .header-status {
+    display: flex; align-items: center; gap: 16px;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent3);
+    box-shadow: 0 0 8px var(--accent3);
+    animation: pulse 2s infinite;
+  }
+  .status-dot.scanning { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+  .status-dot.idle { background: var(--text3); box-shadow: none; animation: none; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-label { font-family: var(--font); font-size: 12px; color: var(--text2); }
+
+  /* ===== CONTROL PANEL ===== */
+  .control-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 20px;
+  }
+  .panel-title {
+    font-size: 11px; letter-spacing: 2px; color: var(--accent);
+    text-transform: uppercase; font-family: var(--font);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .panel-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .form-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 11px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; font-family: var(--font); }
+  select, input[type="text"] {
+    background: var(--card); border: 1px solid var(--border2);
+    color: var(--text); padding: 8px 12px; border-radius: 7px;
+    font-family: var(--font); font-size: 13px; outline: none;
+    transition: border-color 0.2s;
+    min-width: 200px;
+  }
+  select:focus, input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0,212,255,0.15);
+  }
+  select option { background: var(--card); }
+
+  .btn {
+    padding: 9px 20px; border-radius: 7px; border: none;
+    font-family: var(--font); font-size: 13px; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+    text-transform: uppercase;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #000; font-weight: 700;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,212,255,0.3); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    background: transparent; color: var(--text2);
+    border: 1px solid var(--border2);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger {
+    background: transparent; color: var(--danger);
+    border: 1px solid rgba(255,71,87,0.3);
+  }
+  .btn-danger:hover { background: rgba(255,71,87,0.1); }
+
+  /* ===== PROGRESS ===== */
+  .progress-bar-wrap {
+    margin-top: 14px; display: none;
+  }
+  .progress-bar-wrap.active { display: block; }
+  .progress-info {
+    display: flex; justify-content: space-between; margin-bottom: 6px;
+    font-family: var(--font); font-size: 12px; color: var(--text2);
+  }
+  .progress-track {
+    height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent3));
+    border-radius: 2px; transition: width 0.3s; width: 0%;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* ===== STATS ROW ===== */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px; margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 4px;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--border2); }
+  .stat-num {
+    font-size: 28px; font-weight: 700; font-family: var(--font);
+    color: var(--accent);
+  }
+  .stat-label { font-size: 11px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; }
+
+  /* ===== FILTER/SEARCH ROW ===== */
+  .filter-row {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px;
+  }
+  .filter-row input {
+    min-width: 220px; padding: 7px 12px; font-size: 13px;
+  }
+  .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border2);
+    background: transparent; color: var(--text2); font-size: 12px;
+    cursor: pointer; font-family: var(--font); transition: all 0.15s;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .chip:hover, .chip.active {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(0,212,255,0.08);
+  }
+  .chip[data-type="plc"].active    { border-color: var(--plc);         color: var(--plc);         background: rgba(124,92,252,0.1); }
+  .chip[data-type="camera"].active { border-color: var(--camera);      color: var(--camera);      background: rgba(0,200,150,0.1); }
+  .chip[data-type="router"].active { border-color: var(--router);      color: var(--router);      background: rgba(0,170,255,0.1); }
+  .chip[data-type="iot"].active    { border-color: var(--iot);         color: var(--iot);         background: rgba(255,159,67,0.1); }
+
+  /* ===== DEVICE GRID ===== */
+  .device-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+  }
+
+  .device-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; position: relative;
+    transition: all 0.2s; cursor: default;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .device-card:hover {
+    border-color: var(--border2);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    transform: translateY(-2px);
+  }
+  .device-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    border-radius: 12px 12px 0 0;
+    background: var(--type-color, var(--border));
+  }
+
+  .device-card[data-type="plc"]         { --type-color: var(--plc); }
+  .device-card[data-type="camera"]      { --type-color: var(--camera); }
+  .device-card[data-type="nvr"]         { --type-color: var(--camera); }
+  .device-card[data-type="router"]      { --type-color: var(--router); }
+  .device-card[data-type="gateway"]     { --type-color: var(--router); }
+  .device-card[data-type="iot"]         { --type-color: var(--iot); }
+  .device-card[data-type="workstation"] { --type-color: var(--workstation); }
+  .device-card[data-type="server"]      { --type-color: #ff6b9d; }
+  .device-card[data-type="unknown"]     { --type-color: var(--unknown); }
+
+  .device-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .device-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .device-meta { flex: 1; min-width: 0; }
+  .device-ip {
+    font-size: 18px; font-weight: 700; font-family: var(--font);
+    color: var(--text); line-height: 1;
+    cursor: pointer; transition: color 0.15s;
+  }
+  .device-ip:hover { color: var(--accent); text-decoration: underline; }
+  .device-hostname { font-size: 12px; color: var(--text3); margin-top: 2px; font-family: var(--font); }
+  .device-type-badge {
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 4px; border: 1px solid currentColor;
+    color: var(--type-color, var(--text3));
+    font-family: var(--font); white-space: nowrap;
+  }
+
+  .device-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .device-row:last-child { border-bottom: none; }
+  .row-label { color: var(--text3); width: 50px; flex-shrink: 0; font-family: var(--font); font-size: 11px; }
+  .row-value { color: var(--text2); font-family: var(--font); word-break: break-all; }
+  .row-value.mac { color: var(--accent3); }
+
+  .ports-wrap { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .port-tag {
+    padding: 2px 7px; background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2); border-radius: 4px;
+    font-size: 10px; color: var(--accent); font-family: var(--font);
+  }
+
+  /* copy icon */
+  .copy-btn {
+    background: none; border: none; color: var(--text3); cursor: pointer;
+    padding: 0 4px; font-size: 13px; transition: color 0.15s;
+    flex-shrink: 0;
+  }
+  .copy-btn:hover { color: var(--accent); }
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--text3);
+  }
+  .empty-state .big { font-size: 56px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; color: var(--text2); margin-bottom: 6px; }
+  .empty-state small { font-size: 12px; font-family: var(--font); }
+
+  /* ===== TABLE VIEW ===== */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+    font-family: var(--font);
+  }
+  th {
+    text-align: left; padding: 10px 12px;
+    background: var(--surface); color: var(--text3);
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    border-bottom: 1px solid var(--border); position: sticky; top: 0;
+  }
+  td {
+    padding: 10px 12px; border-bottom: 1px solid var(--border);
+    color: var(--text2); vertical-align: middle;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .td-ip { color: var(--text); font-weight: 600; }
+  .td-mac { color: var(--accent3); }
+  .td-type span {
+    padding: 2px 8px; border-radius: 4px; font-size: 11px;
+    border: 1px solid currentColor;
+  }
+
+  /* ===== VIEW TOGGLE ===== */
+  .view-toggle { display: flex; gap: 4px; }
+  .view-btn {
+    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border2);
+    background: transparent; color: var(--text3); cursor: pointer;
+    font-size: 16px; transition: all 0.15s;
+  }
+  .view-btn.active { background: var(--border2); color: var(--accent); border-color: var(--accent); }
+
+  /* ===== NOTIFICATIONS ===== */
+  #toast {
+    position: fixed; bottom: 20px; right: 20px; z-index: 999;
+    background: var(--card); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 10px 16px;
+    font-family: var(--font); font-size: 13px; color: var(--accent3);
+    opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+
+  /* ===== EXPORT ROW ===== */
+  .action-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px; flex-wrap: wrap; gap: 10px;
+  }
+
+  .scanning-anim {
+    display: none; align-items: center; gap: 8px;
+    font-family: var(--font); font-size: 12px; color: var(--warn);
+  }
+  .scanning-anim.active { display: flex; }
+  .scanning-dots span {
+    display: inline-block; width: 4px; height: 4px; border-radius: 50%;
+    background: var(--warn); margin: 0 2px;
+    animation: blink 1.2s infinite;
+  }
+  .scanning-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .scanning-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+  @media (max-width: 600px) {
+    .form-row { flex-direction: column; }
+    select, input[type="text"] { min-width: 100%; }
+    .device-grid { grid-template-columns: 1fr; }
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🌐</div>
+      <div class="logo-text">
+        <h1>NetScan Pro</h1>
+        <p>Industrial Network Device Scanner</p>
+      </div>
+    </div>
+    <div class="header-status">
+      <div class="status-dot idle" id="statusDot"></div>
+      <span class="status-label" id="statusLabel">READY</span>
+    </div>
+  </header>
+
+  <!-- CONTROL PANEL -->
+  <div class="control-panel">
+    <div class="panel-title">⚡ Scan Configuration</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Your Network Interface</label>
+        <select id="ifaceSelect" onchange="onIfaceChange()">
+          <option value="">— Loading interfaces... —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>IP Address</label>
+        <input type="text" id="ipInput" placeholder="e.g. 192.168.1.10" style="min-width:160px"/>
+      </div>
+      <div class="form-group">
+        <label>Subnet Mask</label>
+        <select id="maskSelect" style="min-width:180px">
+          <option value="255.255.255.0">/24 — 255.255.255.0  (254 hosts)</option>
+          <option value="255.255.254.0">/23 — 255.255.254.0  (510 hosts)</option>
+          <option value="255.255.252.0">/22 — 255.255.252.0  (1022 hosts)</option>
+          <option value="255.255.0.0">/16  — 255.255.0.0     (65534 hosts)</option>
+          <option value="255.255.255.128">/25 — 255.255.255.128 (126 hosts)</option>
+          <option value="255.255.255.192">/26 — 255.255.255.192  (62 hosts)</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="scanBtn" onclick="startScan()">
+        ▶ Start Scan
+      </button>
+      <button class="btn btn-secondary" onclick="loadInterfaces()">⟳ Refresh</button>
+      <button class="btn btn-danger" id="exportBtn" onclick="exportCSV()" style="margin-left:auto">
+        ⬇ Export CSV
+      </button>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="progress-bar-wrap" id="progressWrap">
+      <div class="progress-info">
+        <span id="progressText">Scanning...</span>
+        <span id="progressCount">0 / 0</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card">
+      <div class="stat-num" id="statTotal">—</div>
+      <div class="stat-label">Devices Found</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statPLC" style="color:var(--plc)">0</div>
+      <div class="stat-label">PLC / HMI</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statCam" style="color:var(--camera)">0</div>
+      <div class="stat-label">Cameras / NVR</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statRouter" style="color:var(--router)">0</div>
+      <div class="stat-label">Routers / SW</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statIot" style="color:var(--iot)">0</div>
+      <div class="stat-label">IoT / Other</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statScanned" style="color:var(--text3)">—</div>
+      <div class="stat-label">IPs Scanned</div>
+    </div>
+  </div>
+
+  <!-- FILTER + VIEW TOGGLE -->
+  <div class="action-row">
+    <div class="filter-row" style="margin-bottom:0">
+      <input type="text" id="searchInput" placeholder="🔍  Search IP, MAC, hostname, vendor..."
+             oninput="renderDevices()" style="min-width:260px"/>
+      <div class="filter-chips">
+        <button class="chip active" data-type="all"   onclick="setFilter('all',this)">All</button>
+        <button class="chip" data-type="plc"           onclick="setFilter('plc',this)">PLC</button>
+        <button class="chip" data-type="camera"        onclick="setFilter('camera',this)">Camera</button>
+        <button class="chip" data-type="nvr"           onclick="setFilter('nvr',this)">NVR</button>
+        <button class="chip" data-type="router"        onclick="setFilter('router',this)">Router</button>
+        <button class="chip" data-type="iot"           onclick="setFilter('iot',this)">IoT</button>
+        <button class="chip" data-type="workstation"   onclick="setFilter('workstation',this)">PC</button>
+        <button class="chip" data-type="unknown"       onclick="setFilter('unknown',this)">Unknown</button>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px">
+      <div class="scanning-anim" id="scanAnim">
+        SCANNING <div class="scanning-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn active" id="viewGrid" title="Grid" onclick="setView('grid')">⊞</button>
+        <button class="view-btn" id="viewTable" title="Table" onclick="setView('table')">☰</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="resultsContainer"></div>
+
+</div>
+
+<div id="toast">Copied!</div>
+
+<script>
+const API = 'http://localhost:8765';
+let allResults = [];
+let activeFilter = 'all';
+let currentView = 'grid';
+let pollTimer = null;
+let interfaces = [];
+
+// ============ STARTUP ============
+window.onload = () => {
+  loadInterfaces();
+  showEmpty();
+};
+
+async function loadInterfaces() {
+  try {
+    const res = await fetch(`${API}/api/interfaces`);
+    interfaces = await res.json();
+    const sel = document.getElementById('ifaceSelect');
+    sel.innerHTML = interfaces.map((iface, i) =>
+      `<option value="${i}">${iface.iface} — ${iface.ip} (${iface.netmask})</option>`
+    ).join('');
+    if (interfaces.length > 0) onIfaceChange();
+  } catch(e) {
+    document.getElementById('ifaceSelect').innerHTML =
+      '<option value="">⚠ Cannot reach backend (is server running?)</option>';
+  }
+}
+
+function onIfaceChange() {
+  const idx = document.getElementById('ifaceSelect').value;
+  if (idx === '' || !interfaces[idx]) return;
+  document.getElementById('ipInput').value = interfaces[idx].ip;
+  const mask = interfaces[idx].netmask;
+  const sel = document.getElementById('maskSelect');
+  for (let opt of sel.options) {
+    if (opt.value === mask) { opt.selected = true; break; }
+  }
+}
+
+// ============ SCAN ============
+async function startScan() {
+  const ip = document.getElementById('ipInput').value.trim();
+  const mask = document.getElementById('maskSelect').value;
+  if (!ip) { toast('Enter an IP address first'); return; }
+
+  document.getElementById('scanBtn').disabled = true;
+  document.getElementById('progressWrap').classList.add('active');
+  document.getElementById('scanAnim').classList.add('active');
+  setStatus('scanning', 'SCANNING');
+  allResults = [];
+  renderDevices();
+
+  try {
+    await fetch(`${API}/api/scan?ip=${encodeURIComponent(ip)}&netmask=${encodeURIComponent(mask)}`);
+    pollTimer = setInterval(pollProgress, 1500);
+  } catch(e) {
+    toast('❌ Cannot connect to backend server!');
+    resetScanUI();
+  }
+}
+
+async function pollProgress() {
+  try {
+    const res = await fetch(`${API}/api/progress`);
+    const data = await res.json();
+    const pct = data.total > 0 ? Math.round(data.done / data.total * 100) : 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent =
+      `Phase: ${data.phase} — Found ${data.results.length} devices`;
+    document.getElementById('progressCount').textContent =
+      `${data.done} / ${data.total} IPs`;
+    document.getElementById('statScanned').textContent = data.done;
+    allResults = data.results || [];
+    renderDevices();
+    updateStats();
+
+    if (!data.running && data.phase === 'done') {
+      clearInterval(pollTimer);
+      resetScanUI();
+      setStatus('ready', `DONE — ${allResults.length} DEVICES`);
+      toast(`✅ Scan complete — ${allResults.length} devices found`);
+    }
+  } catch(e) {}
+}
+
+function resetScanUI() {
+  document.getElementById('scanBtn').disabled = false;
+  document.getElementById('scanAnim').classList.remove('active');
+}
+
+function setStatus(state, label) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot ' + (state === 'scanning' ? 'scanning' : state === 'ready' ? '' : 'idle');
+  document.getElementById('statusLabel').textContent = label;
+}
+
+// ============ RENDER ============
+function getFiltered() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase();
+  return allResults.filter(d => {
+    const typeMatch = activeFilter === 'all' || d.device_type === activeFilter
+      || (activeFilter === 'camera' && (d.device_type === 'camera' || d.device_type === 'nvr'));
+    const search = !q || [d.ip, d.mac, d.hostname, d.vendor, d.device_label]
+      .join(' ').toLowerCase().includes(q);
+    return typeMatch && search;
+  });
+}
+
+function renderDevices() {
+  const filtered = getFiltered();
+  const container = document.getElementById('resultsContainer');
+
+  if (allResults.length === 0) { showEmpty(); return; }
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="big">🔍</div>
+      <p>No devices match your filter</p>
+      <small>Try clearing the search or changing the type filter</small>
+    </div>`;
+    return;
+  }
+
+  if (currentView === 'grid') {
+    container.innerHTML = `<div class="device-grid">
+      ${filtered.map(d => deviceCard(d)).join('')}
+    </div>`;
+  } else {
+    container.innerHTML = `<div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>IP Address</th><th>Hostname</th><th>MAC Address</th>
+          <th>Vendor</th><th>Type</th><th>Open Ports</th><th>Scanned</th>
+        </tr></thead>
+        <tbody>${filtered.map(d => deviceRow(d)).join('')}</tbody>
+      </table>
+    </div>`;
+  }
+}
+
+function deviceCard(d) {
+  const ports = d.open_ports.map(p =>
+    `<span class="port-tag" title="${p.service}">${p.port}</span>`
+  ).join('');
+  const portsSection = d.open_ports.length
+    ? `<div class="ports-wrap">${ports}</div>`
+    : '';
+
+  return `<div class="device-card" data-type="${d.device_type}">
+    <div class="device-header">
+      <div class="device-icon">${d.icon}</div>
+      <div class="device-meta">
+        <div class="device-ip" onclick="copyText('${d.ip}')" title="Click to copy">${d.ip}</div>
+        <div class="device-hostname">${d.hostname || '—'}</div>
+      </div>
+      <span class="device-type-badge">${d.device_type}</span>
+    </div>
+    <div class="device-row">
+      <span class="row-label">MAC</span>
+      <span class="row-value mac">${d.mac}</span>
+      <button class="copy-btn" onclick="copyText('${d.mac}')" title="Copy MAC">⎘</button>
+    </div>
+    <div class="device-row">
+      <span class="row-label">Vendor</span>
+      <span class="row-value">${d.vendor}</span>
+    </div>
+    <div class="device-row">
+      <span class="row-label">Label</span>
+      <span class="row-value">${d.device_label}</span>
+    </div>
+    ${d.open_ports.length ? `<div class="device-row">
+      <span class="row-label">Ports</span>
+      <div style="flex:1">${portsSection}</div>
+    </div>` : ''}
+    <div class="device-row">
+      <span class="row-label">Time</span>
+      <span class="row-value" style="color:var(--text3)">${d.scanned_at}</span>
+    </div>
+  </div>`;
+}
+
+function deviceRow(d) {
+  const ports = d.open_ports.map(p => `${p.port}(${p.service})`).join(', ');
+  const typeColor = {
+    plc:'var(--plc)', camera:'var(--camera)', nvr:'var(--camera)',
+    router:'var(--router)', iot:'var(--iot)', workstation:'var(--workstation)'
+  }[d.device_type] || 'var(--text3)';
+  return `<tr>
+    <td class="td-ip" onclick="copyText('${d.ip}')" style="cursor:pointer">${d.ip}</td>
+    <td>${d.hostname || '—'}</td>
+    <td class="td-mac">${d.mac}</td>
+    <td>${d.vendor}</td>
+    <td class="td-type"><span style="color:${typeColor};border-color:${typeColor}">${d.device_type}</span></td>
+    <td style="font-size:11px;color:var(--text3)">${ports || '—'}</td>
+    <td style="color:var(--text3)">${d.scanned_at}</td>
+  </tr>`;
+}
+
+function showEmpty() {
+  document.getElementById('resultsContainer').innerHTML = `
+    <div class="empty-state">
+      <div class="big">📡</div>
+      <p>No scan results yet</p>
+      <small>Select your network interface above and click "Start Scan"</small>
+    </div>`;
+}
+
+// ============ STATS ============
+function updateStats() {
+  const r = allResults;
+  document.getElementById('statTotal').textContent = r.length;
+  document.getElementById('statPLC').textContent =
+    r.filter(d => d.device_type === 'plc' || d.device_type === 'hmi').length;
+  document.getElementById('statCam').textContent =
+    r.filter(d => d.device_type === 'camera' || d.device_type === 'nvr').length;
+  document.getElementById('statRouter').textContent =
+    r.filter(d => d.device_type === 'router' || d.device_type === 'gateway').length;
+  document.getElementById('statIot').textContent =
+    r.filter(d => !['plc','hmi','camera','nvr','router','gateway','workstation'].includes(d.device_type)).length;
+}
+
+// ============ FILTER / VIEW ============
+function setFilter(type, el) {
+  activeFilter = type;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderDevices();
+}
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('viewGrid').classList.toggle('active', v === 'grid');
+  document.getElementById('viewTable').classList.toggle('active', v === 'table');
+  renderDevices();
+}
+
+// ============ EXPORT ============
+function exportCSV() {
+  if (!allResults.length) { toast('No results to export'); return; }
+  const rows = [['IP','Hostname','MAC','Vendor','Type','Label','Open Ports','Scanned At']];
+  allResults.forEach(d => {
+    rows.push([
+      d.ip, d.hostname, d.mac, d.vendor, d.device_type, d.device_label,
+      d.open_ports.map(p => `${p.port}/${p.service}`).join('; '),
+      d.scanned_at
+    ]);
+  });
+  const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `netscan_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.csv`;
+  a.click();
+  toast('📥 CSV exported');
+}
+
+// ============ UTILS ============
+function copyText(txt) {
+  navigator.clipboard.writeText(txt).then(() => toast(`Copied: ${txt}`)).catch(() => {});
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
